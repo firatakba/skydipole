@@ -1,7 +1,0 @@
-Highlights
-
-- Open-source Python package for dipole searches in binary-labelled sky catalogues
-- Joint monopole-dipole least squares removes footprint-induced false dipoles
-- Vectorised label permutation calibrates the free-axis test in seconds
-- Injection-recovery quantifies what a given catalogue can and cannot detect
-- Galaxy Zoo 1: no spin dipole; omitting the monopole gives a spurious 5-sigma axis
