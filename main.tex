@@ -1,0 +1,502 @@
+%% Computer Physics Communications -- Computer Programs in Physics (CPiP) manuscript
+%% Based on the CPC CPiP template (cpc-cpip-template.tex). Compile with pdflatex + bibtex.
+\documentclass[preprint,12pt]{elsarticle}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\newcounter{bla}
+\newenvironment{refnummer}{%
+\list{[\arabic{bla}]}%
+{\usecounter{bla}%
+ \setlength{\itemindent}{0pt}%
+ \setlength{\topsep}{0pt}%
+ \setlength{\itemsep}{0pt}%
+ \setlength{\labelsep}{2pt}%
+ \setlength{\listparindent}{0pt}%
+ \settowidth{\labelwidth}{[9]}%
+ \setlength{\leftmargin}{\labelwidth}%
+ \addtolength{\leftmargin}{\labelsep}%
+ \setlength{\rightmargin}{0pt}}}
+ {\endlist}
+
+\journal{Computer Physics Communications}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{\texttt{skydipole}: a monopole-aware dipole estimator for binary-labelled sky catalogues, with an application to galaxy spin handedness in Galaxy Zoo~1}
+
+\author[tedu]{F\i rat Akba\corref{cor}}
+\author[tedu]{Eren Ulu}
+\author[aybu]{\.{I}hsan Tolga Medeni}
+\author[au]{\.{I}man Askerbeyli}
+\cortext[cor]{Corresponding author.\\\textit{E-mail address:} firat.akba@tedu.edu.tr}
+\address[tedu]{Department of Computer Engineering, TED University, Ankara, Turkey}
+\address[aybu]{Department of Management Information Systems, Ankara Y\i ld\i r\i m Beyaz\i t University, Ankara, Turkey}
+\address[au]{Department of Computer Engineering, Ankara University, Ankara, Turkey}
+
+\begin{abstract}
+Searches for a preferred direction in a binary-labelled sky catalogue, such as the clockwise/anticlockwise handedness of spiral galaxies, are vulnerable to two computational artefacts: a global label imbalance (a monopole) and incomplete sky coverage. On a partial footprint the monopole and dipole basis functions are not orthogonal, so an estimator without a free monopole converts a constant offset into a high-significance false dipole. We present \texttt{skydipole}, an open-source Python package that fits the monopole and the dipole vector jointly by ordinary least squares with the full normal matrix, calibrates the free-axis test by vectorised label permutation, reports footprint-aware projections on user-specified axes, and quantifies sensitivity by injection--recovery on the real positions. The code scales linearly with catalogue size and evaluates $10^4$ permutations of a $4\times10^4$-object catalogue in seconds on one core. As an application we analyse $N=36{,}267$ Galaxy Zoo~1 spirals with clean handedness labels covering about a quarter of the sky. The monopole-aware fit finds no dipole ($|\mathbf d| = 0.0155$, $p_{\rm perm}=0.79$) and a significant monopole ($m=-0.047\pm0.011$); omitting the monopole yields a spurious $5.1\sigma$ dipole pointing away from the footprint. Projections on five previously proposed axes are consistent with zero, and injection--recovery shows that the sample would detect $|\mathbf d|=0.08$ at $3\sigma$ in $\ge92\%$ of realisations but mostly misses $|\mathbf d|\le0.03$.
+\\[1ex]
+\noindent \textbf{PROGRAM SUMMARY}
+\begin{small}
+\noindent
+{\em Program Title:} \texttt{skydipole} \\
+{\em CPC Library link to program files:} (to be added by Technical Editor) \\
+{\em Developer's repository link:} \url{https://github.com/firatakba/skydipole/releases/tag/v1.0} \\
+{\em Licensing provisions:} MIT \\
+{\em Programming language:} Python 3.10+ (NumPy, SciPy, pandas, Matplotlib) \\
+{\em Supplementary material:} Galaxy Zoo~1 handedness label file (\texttt{real\_galaxy\_labels.csv}), all result files and figures of the example application, and a README giving the run order (Zenodo DOI: \href{https://doi.org/10.5281/zenodo.23298960}{10.5281/zenodo.23298960}). \\
+{\em Nature of problem:}
+Testing whether a binary label defined on the celestial sphere (for example the spin handedness of spiral galaxies) has a preferred direction. Real catalogues cover only part of the sky and carry a global label imbalance of instrumental or human origin. On a partial footprint the $\ell=0$ (monopole) and $\ell=1$ (dipole) basis functions are correlated, so a dipole estimator that does not fit the monopole is biased and can report a false, highly significant axis. The significance of a free-axis search, the bounds along pre-specified axes, and the detection power of a given catalogue must all be evaluated with the actual footprint and the actual label imbalance. \\
+{\em Solution method:}
+The expected label $\mathbb{E}[s\,|\,\mathbf n] = m + \mathbf d\cdot\mathbf n$ is fitted by ordinary least squares with the full $4\times4$ normal matrix, which removes the monopole--dipole coupling exactly within the linear model. The free-axis test statistic $\chi^2_{\rm dip} = \hat{\mathbf d}^{T}\mathrm{Cov}(\hat{\mathbf d})^{-1}\hat{\mathbf d}$ is calibrated by label permutation on the fixed positions; permutations are processed in vectorised blocks with one matrix product per block. Fixed-axis projections with marginalised uncertainties, Bonferroni-corrected $p$-values, bootstrap and split-half consistency, and injection--recovery sensitivity on the real positions are provided. The model function is linear and the normal matrix is tiny, so cost is $O(N)$ in the number of objects. \\
+{\em Additional comments including restrictions and unusual features:}
+The package never invents labels, redshifts or extinction values: optional tests are reported as \emph{skipped} when the corresponding column is absent. Only $\ell\le1$ is fitted in the current version; higher multipoles and HEALPix-mask input are planned. Reference run: $N=36{,}267$ objects, $10^4$ permutations, $300$ bootstrap resamples and $50$ split halves take about $6$~s on a single thread (Section~\ref{sec:performance}). \\
+\end{small}
+\end{abstract}
+
+\begin{keyword}
+cosmic isotropy \sep galaxy spin \sep dipole estimation \sep partial sky coverage \sep permutation test \sep Galaxy Zoo \sep Python
+\end{keyword}
+
+\end{frontmatter}
+
+%% ------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+The cosmological principle, that the Universe is statistically homogeneous and isotropic on large scales, underlies standard $\Lambda$CDM cosmology.
+Several observations have nevertheless been interpreted as hints of preferred directions, including alignments of the lowest CMB multipoles \cite{Oliveira2004,LandMagueijo2005,Schwarz2016}, large-scale bulk flows \cite{Watkins2009,Kashlinsky2008}, and anisotropy in supernova-based acceleration estimates \cite{Colin2019}.
+The Planck analysis of CMB isotropy finds the maps statistically consistent with $\Lambda$CDM while confirming the presence of the large-scale anomalies \cite{Planck2018VII}.
+
+A separate line of work tests whether the handedness of spiral galaxies, clockwise (Z-wise) versus anticlockwise (S-wise) as seen from Earth, is distributed isotropically.
+Longo reported a dipole in SDSS spirals with visually assigned handedness \cite{Longo2011}, and Shamir reported dipole axes from automated classifications of SDSS, Pan-STARRS and DES images \cite{Shamir2012,Shamir2016,Shamir2020,Shamir2022}.
+The proposed axes differ between analyses (the Longo and Shamir axes are separated by about $70^\circ$; Section~\ref{sec:axes}), and independent re-analyses have not confirmed a dipole \cite{Iye2021,PatelDesmond2024}.
+Galaxy Zoo~1 (GZ1) \cite{Lintott2008,Lintott2011} provides handedness votes for nearly $9\times10^5$ SDSS galaxies.
+Land et al.\ found an excess of S-wise classifications in the raw votes, attributed it to human bias, and found no significant dipole after correcting for it \cite{Land2008}; Hayes et al.\ later argued that this excess is a selection effect in which extra S-wise votes are taken from the elliptical and edge-on categories, and that the public GZ1 catalogue was never corrected for it \cite{Hayes2017}.
+
+Any such constant excess is a monopole in the handedness field.
+From a computational standpoint the problem is a linear least-squares estimation on the sphere with an incomplete footprint: the normal matrix couples the $\ell=0$ and $\ell=1$ coefficients, exactly as in least-squares spherical-harmonic analysis of partially sampled fields \cite{Martinec1991} and in the mask-induced mode coupling familiar from CMB power-spectrum estimation \cite{Hivon2002}.
+An estimator that does not fit the monopole therefore converts it into a dipole, and the statistical calibration of the resulting test requires resampling rather than an analytic approximation \cite{Berg1992conf,Wolff2004}.
+To our knowledge no open-source tool integrates these steps---monopole-marginalised estimation, permutation calibration, fixed-axis bounds and injection--recovery---for binary-labelled sky catalogues; published analyses rely on bespoke scripts that are rarely released.
+
+This paper describes \texttt{skydipole}, a small Python package that fills that gap, and demonstrates it on GZ1.
+Section~\ref{sec:method} gives the estimator and the statistical tests, Section~\ref{sec:software} the structure, usage and performance of the code, Section~\ref{sec:application} the GZ1 application, and Section~\ref{sec:discussion} the discussion.
+Our results show that a false dipole from an omitted monopole is possible and large in GZ1; they do not show that any earlier analysis suffered from this problem, and we do not re-analyse the datasets of Refs.~\cite{Longo2011,Shamir2012,Shamir2016,Shamir2020,Shamir2022}.
+
+%% ------------------------------------------------------------------
+\section{Method}
+\label{sec:method}
+
+\subsection{Monopole--dipole estimator}
+\label{sec:estimator}
+
+Each object $i$ has a unit position vector
+\begin{equation}
+    \mathbf{n}_i = \left(\cos\delta_i\cos\alpha_i,\ \cos\delta_i\sin\alpha_i,\ \sin\delta_i\right)
+\end{equation}
+and a label $s_i=\pm1$.
+We model the expected label in direction $\mathbf{n}$ as
+\begin{equation}
+    \mathbb{E}[s \mid \mathbf{n}] = m + \mathbf{d}\cdot\mathbf{n},
+    \label{eq:model}
+\end{equation}
+where $m$ is the monopole (a global excess of one label) and $\mathbf d$ the dipole vector.
+With the $N \times 4$ design matrix $\mathbf{X}$ with rows $(1, \mathbf{n}_i^T)$, the ordinary-least-squares (OLS) estimate is
+\begin{equation}
+    \hat{\boldsymbol{\beta}} = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{s},
+    \qquad \hat{\boldsymbol\beta} = (\hat m, \hat{\mathbf{d}}),
+    \label{eq:ols}
+\end{equation}
+with covariance
+\begin{equation}
+    \mathrm{Cov}(\hat{\boldsymbol\beta}) = \hat\sigma^2(\mathbf{X}^T\mathbf{X})^{-1},\quad
+    \hat\sigma^2 = \frac{1}{N}\sum_i (s_i - \mathbf{X}_i\hat{\boldsymbol\beta})^2 .
+    \label{eq:cov}
+\end{equation}
+Inverting the full $4\times4$ normal matrix accounts for the partial footprint, including the non-orthogonality of the monopole and dipole columns \cite{Arioli2012}; the system is tiny and well conditioned on any footprint covering more than a few per cent of the sky.
+Because $\mathbb{E}[s]$ is exactly linear in $(m, \mathbf{d})$ when $P(s{=}{+}1) = \tfrac12(1 + m + \mathbf{d}\cdot\mathbf{n})$, the estimator is unbiased in that model.
+The label variance $1-(m+\mathbf d\cdot\mathbf n)^2$ differs from unity by less than $0.3\%$ for the amplitudes considered here, so the homoscedastic estimate in Eq.~(\ref{eq:cov}) is adequate; the permutation test of Section~\ref{sec:perm} does not depend on it.
+Parameter uncertainties and correlations follow from the curvature of the $\chi^2$ surface in the usual way \cite{James1975}.
+The dipole amplitude is $|\hat{\mathbf{d}}|$ and the free-axis test statistic is
+\begin{equation}
+    \chi^2_{\rm dip} = \hat{\mathbf{d}}^T[\mathrm{Cov}(\hat{\mathbf{d}})]^{-1}\hat{\mathbf{d}}\quad (3\ \text{d.o.f.}),
+    \label{eq:chi2dip}
+\end{equation}
+where $\mathrm{Cov}(\hat{\mathbf{d}})$ is the $3\times3$ block of the covariance marginalised over $m$.
+The ``naive'' model with $m \equiv 0$ imposed is fitted for comparison.
+
+\subsection{Permutation null}
+\label{sec:perm}
+
+The significance of the free-axis dipole is calibrated by shuffling the labels $\mathbf{s}$ among the fixed positions $n_{\rm perm}$ times and recomputing $\chi^2_{\rm dip}$.
+Shuffling preserves the monopole and the footprint.
+Since the statistic is the $\chi^2$ of the best-fitting dipole over all axes, the search over directions is included in the null distribution, so no separate trials correction is needed for the free-axis test.
+The permutation $p$-value is $(1 + n_{\ge})/(1 + n_{\rm perm})$.
+With $n_{\rm perm}=10^4$ the Monte Carlo uncertainty of a $p$-value near $0.8$ is $\approx0.004$ \cite{Wolff2004}; $p$-values quoted as ``analytic'' are computed from the exact $\chi^2_3$ distribution \cite{Gil2015}.
+
+\subsection{Fixed-axis projections}
+\label{sec:proj}
+
+For a specified axis $\hat{\mathbf{a}}$ we report $d_{\parallel} = \hat{\mathbf{d}}\cdot\hat{\mathbf{a}}$ with uncertainty $\sqrt{\hat{\mathbf{a}}^T\mathrm{Cov}(\hat{\mathbf{d}})\hat{\mathbf{a}}}$, propagated through the full covariance \cite{Ramos2019}.
+A positive $d_\parallel$ means a $+1$ (clockwise) excess toward $\hat{\mathbf{a}}$.
+Previously published amplitudes and signs are defined with different conventions and estimators, so axis and anti-axis are treated symmetrically when judging consistency.
+When $k$ pre-specified axes are tested, a Bonferroni factor of $k$ is applied to the smallest two-sided $p$-value.
+Two-sided $95\%$ intervals and one-sided upper limits are computed in the Gaussian approximation; for the sample sizes of interest they agree with the frequentist constructions of Refs.~\cite{Barlow2002,Conrad2004}, and for small subsamples low-statistics constructions \cite{Zlokazov2014} widen them only marginally.
+
+\subsection{Internal consistency and sensitivity}
+\label{sec:consistency}
+
+\emph{Bootstrap:} $n_{\rm boot}$ bootstrap resamples give the amplitude distribution and the angular radius of the $68\%$ region of the fitted axis; bootstrap and split-half resampling provide bias-corrected uncertainties without distributional assumptions \cite{Berg1992jack}.
+\emph{Split halves:} the sample is split randomly into halves $n_{\rm split}$ times, and $(\hat{\mathbf{d}}_1 - \hat{\mathbf{d}}_2)^T(C_1+C_2)^{-1}(\hat{\mathbf{d}}_1 - \hat{\mathbf{d}}_2)$ is computed, which has expectation $3$ if the halves are consistent.
+\emph{Injection--recovery (simulation):} synthetic labels are drawn on the real positions with $P(s{=}{+}1) = \tfrac12(1 + \hat m + \mathbf{d}_{\rm inj}\cdot\mathbf{n})$, using the fitted $\hat m$, for a grid of injected amplitudes and axes; a realisation is ``detected'' if $\chi^2_{\rm dip}$ exceeds the $3\sigma$-equivalent value for $3$ d.o.f.
+This quantifies, for the actual $N$ and footprint, which dipole amplitudes the catalogue can and cannot detect.
+
+%% ------------------------------------------------------------------
+\section{Software description}
+\label{sec:software}
+
+\subsection{Structure and usage}
+
+\texttt{skydipole} is written in Python~3 \cite{Borcherds2007} on top of NumPy \cite{Harris2020}, SciPy \cite{Virtanen2020}, pandas \cite{McKinney2010} and Matplotlib \cite{Hunter2007}.
+The package consists of a shared library and six command-line scripts (Table~\ref{tab:files}); each script fixes its random seed, writes machine-readable JSON/CSV output, and records the SHA-256 hash of its input file.
+The input to the main analysis is a plain CSV table with one row per object and columns for right ascension, declination and the label ($\pm1$, \texttt{S}/\texttt{Z} or \texttt{CW}/\texttt{ACW}; other values are dropped and counted).
+Optional redshift and $E(B{-}V)$ columns enable redshift-sliced fits and a dust-regression test; when a column is absent the corresponding test is reported as \emph{skipped}, never faked.
+Catalogue ingestion follows the VOTable/CSV conventions of CDS VizieR, in the same spirit as Ref.~\cite{Varley2016}.
+A typical run is
+\begin{verbatim}
+python option2_real_analysis.py --labels labels.csv \
+    --ra ra --dec dec --spin spin --nperm 10000 --out run1
+\end{verbatim}
+which prints the footprint report, the monopole-aware and naive fits, the permutation $p$-value, the projection on a user-chosen axis (\texttt{--axis-ra}, \texttt{--axis-dec}), the bootstrap and split-half diagnostics, and writes \texttt{run1\_results.json} and a summary figure.
+The README lists the run order for the full example application.
+
+\begin{table}[t]
+\caption{\label{tab:files}Files in the package and their role in the example application (Section~\ref{sec:application}).}
+\centering
+\small
+\begin{tabular}{p{0.34\linewidth}p{0.6\linewidth}}
+\toprule
+File & Purpose\\
+\midrule
+\texttt{chirality\_lib.py} & shared library: unit vectors, design matrix, OLS fit, vectorised permutation $\chi^2$, label simulation\\
+\texttt{Galaxy\_Data\_Extractor.py} & builds the $\pm1$ label file from a VizieR GZ1 export (vote-fraction threshold)\\
+\texttt{option2\_real\_analysis.py} & main fit, permutation null, bootstrap, split halves, optional $z$ and $E(B{-}V)$ tests\\
+\texttt{option2b\_followup.py} & binned diagnostic (Appendix~\ref{app:nonlin}), fixed-axis limits, injection--recovery\\
+\texttt{option2c\_literature\_axes.py} & projections on published axes, naive-model numbers, Bonferroni correction\\
+\texttt{run\_robustness\_checks\_fixed.py} & threshold and label-definition robustness (Table~\ref{tab:robustness})\\
+\texttt{sample\_composition\_checks.py} & sub-sample fits (Table~\ref{tab:subsets})\\
+\texttt{benchmark\_scaling.py} & timing versus $N$ and $n_{\rm perm}$ (Table~\ref{tab:timing})\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Implementation of the permutation null}
+
+The cost of the method is dominated by the permutations.
+Because the design matrix $\mathbf X$ and $(\mathbf X^T\mathbf X)^{-1}$ do not change under label shuffling, $K$ permuted label vectors are stacked into an $N\times K$ matrix $\mathbf S$ and all $K$ fits are obtained from a single product $\mathbf B=(\mathbf X^T\mathbf X)^{-1}\mathbf X^T\mathbf S$; the residual variances and the $K$ values of $\chi^2_{\rm dip}$ follow from one further matrix product and an \texttt{einsum}.
+With $K=250$ the block occupies $N\times K\times 8$ bytes ($\approx70$~MB for $N=36{,}267$; the code caps $K$ so that the block stays below $\approx1.6$~GB for very large $N$) and uses BLAS-level vectorisation, which is the standard route to compiled-code performance in NumPy \cite{Mortensen2016}.
+Blocks are independent, so the loop over blocks parallelises trivially across cores in the spirit of Ref.~\cite{Mendes2003}; the reference implementation is single-threaded apart from the BLAS calls.
+
+\subsection{Performance}
+\label{sec:performance}
+
+Table~\ref{tab:timing} gives wall-clock times measured with \texttt{benchmark\_scaling.py} on synthetic catalogues drawn on the GZ1 footprint.
+\begin{table}[t]
+\caption{\label{tab:timing}Wall-clock time of the main steps (single thread, \texttt{OMP\_NUM\_THREADS=1}; 64-bit ARMv8 Linux workstation, Python 3.14, NumPy 2.5). Synthetic labels on the real GZ1 positions, resampled to size $N$; injection grid = $4$ amplitudes $\times$ $200$ realisations. For $N=10^6$ the permutation block size is reduced from $250$ to $200$ so that the block stays below $1.6$~GB.}
+\centering
+\small
+\begin{tabular}{rrrrr}
+\toprule
+$N$ & fit (ms) & $10^4$ perm.\ (s) & $300$ boot.\ (s) & injection (s)\\
+\midrule
+$10{,}000$ & $0.4$ & $1.0$ & $0.1$ & $0.2$\\
+$36{,}267$ (GZ1) & $1.1$ & $4.4$ & $0.3$ & $0.5$\\
+$100{,}000$ & $1.7$ & $12.6$ & $0.7$ & $1.4$\\
+$1{,}000{,}000$ & $19.7$ & $151.2$ & $12.8$ & $13.6$\\
+\bottomrule
+\end{tabular}
+\end{table}
+The fit itself is $O(N)$ with a negligible constant; the permutation null is $O(N\,n_{\rm perm})$ and dominates for $n_{\rm perm}\ge10^3$.
+Memory is $O(N\,K)$ for the permutation block and $O(N)$ otherwise; extrapolating Table~\ref{tab:timing}, a $10^7$-object catalogue (the size of the spiral samples expected from Euclid or LSST) with $10^4$ permutations would take about half an hour on one thread, or minutes with the blocks distributed over cores.
+
+\subsection{Validation}
+
+The implementation was validated in three ways.
+(i)~On synthetic labels with known $(m,\mathbf d)$ drawn on the GZ1 positions, the estimator recovers the input parameters within the quoted uncertainties (Section~\ref{sec:sens}).
+(ii)~The permutation null of $\chi^2_{\rm dip}$ has mean $3.00$ and follows the analytic $\chi^2_3$ distribution (Fig.~\ref{fig:false_dipole_demo}), as expected for a correctly normalised quadratic form.
+(iii)~The main fit was reproduced independently with a dependency-free Python implementation of Eqs.~(\ref{eq:ols})--(\ref{eq:chi2dip}); all quantities in Table~\ref{tab:main_results} agree to the quoted precision.
+
+%% ------------------------------------------------------------------
+\section{Example application: Galaxy Zoo~1}
+\label{sec:application}
+
+\subsection{Catalogue and labels}
+
+We use the GZ1 data-release catalogue of Lintott et al.\ \cite{Lintott2011} (VizieR J/MNRAS/410/166, all columns, no row limit, $893{,}212$ rows), which contains the SDSS Main Galaxy Sample (flag \texttt{S}$=$M) and an ``additional'' sample (\texttt{S}$=$A) as defined in that reference.
+Following the convention of Ref.~\cite{Land2008}, clockwise spirals are Z-wise and anticlockwise spirals are S-wise.
+We set
+\begin{equation}
+    s_i =
+    \begin{cases}
+      +1 & \text{if } P_{{\rm CW},i} \ge 0.80 \ \ (\text{clockwise, Z-wise}),\\
+      -1 & \text{if } P_{{\rm ACW},i} \ge 0.80 \ \ (\text{anticlockwise, S-wise}),
+    \end{cases}
+\end{equation}
+where $P_{\rm CW}$ and $P_{\rm ACW}$ are the catalogue's fractions of votes for clockwise and anticlockwise spirals (VizieR columns \texttt{pcS} and \texttt{paS}, defined in the catalogue ReadMe as the fraction of votes for ``clockwise spiral'' and ``anticlockwise spiral''; the Z-wise fraction of $0.481$ obtained below reproduces that of Ref.~\cite{Land2008} and confirms the orientation of the labels).
+Galaxies meeting neither criterion are discarded.
+No additional quality cuts are applied beyond removing exact duplicate positions (rounded to $10^{-4}$ degrees; one object).
+We adopt the $0.80$ ``clean'' threshold of Ref.~\cite{Land2008}; other thresholds are examined in Section~\ref{sec:robust}.
+
+The resulting sample has $N = 36{,}267$ galaxies ($4.1\%$ of the catalogue), of which $48.11\%$ are clockwise (Z-wise).
+Of these, $30{,}725$ ($84.7\%$) belong to the Main sample and $5{,}542$ ($15.3\%$) to the additional sample.
+The number of votes per galaxy ranges from $11$ (median $34$), and $1.0\%$ of the sample has fewer than $20$ votes; Section~\ref{sec:robust} repeats the fit on these subsets.
+For comparison, the clean sample of Ref.~\cite{Land2008} contained $17{,}100$ Z-wise and $18{,}471$ S-wise galaxies, a Z-wise fraction of $0.481$, consistent with ours.
+
+The catalogue also provides ``monochrome'' vote fractions (\texttt{pcSm}, \texttt{paSm}, \ldots) from a bias study in which a subset of objects was re-presented as monochrome images; $91{,}303$ objects ($10.2\%$) have such votes, and for all other objects the monochrome columns are copies of the standard ones.
+The fractions ``following the debiasing procedure'' of Ref.~\cite{Lintott2011} (\texttt{pE0}, \texttt{pS0}) refer only to the elliptical and combined-spiral categories and carry no handedness information, so the table contains no handedness-debiased label.
+We use the monochrome columns only as an alternative label definition in Section~\ref{sec:robust}.
+
+\subsection{Footprint}
+
+The sample spans $\alpha \in [0.05^\circ, 360.0^\circ]$ and $\delta \in [-11.2^\circ, +76.5^\circ]$.
+An occupancy estimate on equal-area cells of about $4^\circ$ gives $\approx 23.5\%$ of the sphere (Fig.~\ref{fig:footprint}); the centroid of the unit vectors lies at $(\alpha,\delta) = (190.0^\circ, +36.9^\circ)$.
+The marginalised $1\sigma$ uncertainty on a dipole component is $0.0104$ in the best-constrained direction and $0.0189$ in the worst, compared with $\sqrt{3/N}\approx 0.009$ for ideal full-sky coverage with the same $N$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_footprint.png}
+\caption{\label{fig:footprint}Sky distribution of the $N = 36{,}267$ GZ1 spirals (grey) with the direction of the naive dipole fit (monopole omitted, red star), the monopole-aware fit (blue star), the footprint centroid and anti-centroid, and the axes discussed in Section~\ref{sec:axes}.}
+\end{figure}
+
+\subsection{Dipole fit with and without a monopole}
+\label{sec:results_main}
+
+Table~\ref{tab:main_results} compares the monopole-aware fit with the naive fit.
+In the monopole-aware fit, $\chi^2_{\rm dip} = 1.04$ ($p = 0.79$) and the permutation test gives $p_{\rm perm} = 0.7923$ ($7{,}923$ of $10^4$ shuffles with larger $\chi^2_{\rm dip}$).
+The mean of the permutation null is $3.00$, matching the $\chi^2_3$ expectation (Fig.~\ref{fig:false_dipole_demo}, left).
+The fitted monopole is $m = -0.0468\pm0.0106$.
+Its uncertainty is larger than that of the simple mean spin, $\bar s = -0.0377\pm0.0053$, because $m$ is partially degenerate with the dipole on this footprint.
+
+\begin{table}[t]
+\caption{\label{tab:main_results}Monopole-aware fit versus naive fit ($m\equiv0$) on $N = 36{,}267$ GZ1 spirals. The $\sigma$-equivalent is the two-sided Gaussian equivalent of the analytic $p$-value.}
+\centering
+\begin{tabular}{lcc}
+\toprule
+ & Monopole-aware & Naive ($m\equiv0$)\\
+\midrule
+Monopole $m$ & $-0.0468\pm0.0106$ & $0$ (fixed)\\
+$|\mathbf{d}|$ & $0.0155$ & $0.0446$\\
+Axis RA, Dec & $165.9^\circ, +62.7^\circ$ & $18.9^\circ, -65.2^\circ$\\
+$\chi^2_{\rm dip}$ (3 d.o.f.) & $1.04$ & $33.29$\\
+Analytic $p$ & $0.79$ & $2.8\times10^{-7}$ ($5.1\sigma$)\\
+Permutation $p$ & $0.7923$ & ---\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+If the monopole is omitted, the same data give $\chi^2_{\rm dip} = 33.29$, $p = 2.8\times10^{-7}$ ($5.1\sigma$) and an axis at $(18.9^\circ,-65.2^\circ)$.
+This axis is $28.8^\circ$ from the anti-centroid of the footprint, $(10.0^\circ,-36.9^\circ)$ (Fig.~\ref{fig:footprint}), as expected when a negative constant offset is fitted by a dipole on a northern footprint.
+The false signal is therefore the footprint geometry acting on the constant offset rather than a property of the sky.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{run_real_allsky_summary.png}
+\caption{\label{fig:false_dipole_demo}\textbf{Left:} observed $\chi^2_{\rm dip}$ of the monopole-aware fit (red line) against the permutation null ($10^4$ shuffles) and the analytic $\chi^2_3$ distribution. \textbf{Right:} model-free mean spin in $12$ equal-count bins of the angle $\theta$ to the axis $(\alpha,\delta)=(200^\circ,-60^\circ)$ of Appendix~\ref{app:nonlin}, with $1/\sqrt{N_k}$ errors; the bins scatter about a constant offset of $\approx-0.04$.}
+\end{figure}
+
+\subsection{Internal consistency}
+
+The bootstrap amplitude ($300$ resamples) has mean $0.025$ with a $16$--$84\%$ range of $[0.013, 0.036]$, and the $68\%$ region of the fitted axis has an angular radius of $63^\circ$; the amplitude is non-negative by construction and its bootstrap mean is of the order of the noise level, so it is not evidence of a signal.
+The split-half statistic has a mean of $2.49$ over $50$ splits, compared with an expectation of $3$, so the two halves are mutually consistent.
+
+\subsection{Bounds along previously proposed axes}
+\label{sec:axes}
+
+Table~\ref{tab:axes} gives the projection of the monopole-marginalised dipole on five axes.
+All projections are consistent with zero ($|z|\le 0.94$; the smallest two-sided $p$ is $0.35$, and $p\approx1$ after the Bonferroni factor of five).
+The $95\%$ intervals have total widths of $0.044$--$0.070$, set by the footprint.
+The axis $(200^\circ,-60^\circ)$ lies at Galactic $(l,b) = (306.5^\circ,+2.7^\circ)$, close to the Galactic plane, outside our footprint, and $58^\circ$ from the CMB kinematic dipole, $67^\circ$ from the Axis-of-Evil direction, $93^\circ$ from the Longo axis and $108^\circ$ from the Shamir axis; its positive-direction $95\%$ one-sided limit is $0.020$.
+The published galaxy-spin axes themselves differ: the Longo and Shamir axes are separated by $70^\circ$.
+A dipole of amplitude $0.032$ pointing along the $(200^\circ,-60^\circ)$ axis is disfavoured at $2.3\sigma$, which is weak evidence; we do not claim exclusion.
+
+\begin{table}[t]
+\caption{\label{tab:axes}Projection $d_\parallel$ of the monopole-marginalised dipole on proposed axes (J2000 conversions with the standard Galactic rotation; CMB dipole direction from Ref.~\cite{Planck2018I}; Longo's axis is the approximate $(l,b)$ quoted in his abstract). Positive = Z-wise (clockwise) excess toward the axis. The first axis is a fixed direction used in Appendix~\ref{app:nonlin}.}
+\centering
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+Axis & $d_\parallel$ & $\sigma$ & $z$ & $95\%$ interval\\
+\midrule
+$(200^\circ,-60^\circ)$ (fixed, App.~\ref{app:nonlin}) & $-0.0090$ & $0.0178$ & $-0.50$ & $[-0.044,+0.026]$\\
+Longo~\cite{Longo2011}: $(l,b)=(52^\circ,68.5^\circ)$ & $+0.0111$ & $0.0131$ & $+0.85$ & $[-0.015,+0.037]$\\
+Shamir~\cite{Shamir2012}: $(132^\circ,+32^\circ)$ & $+0.0123$ & $0.0131$ & $+0.94$ & $[-0.013,+0.038]$\\
+CMB dipole: $(264.02^\circ,48.25^\circ)_{l,b}$ & $+0.0054$ & $0.0116$ & $+0.47$ & $[-0.017,+0.028]$\\
+Axis of Evil~\cite{LandMagueijo2005}: $(260^\circ,60^\circ)_{l,b}$ & $+0.0080$ & $0.0112$ & $+0.71$ & $[-0.014,+0.030]$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sensitivity}
+\label{sec:sens}
+
+Table~\ref{tab:sens} gives the fraction of $200$ simulated catalogues per cell in which an injected dipole is detected at $3\sigma$, for injected amplitudes $|\mathbf{d}_{\rm inj}| \in \{0.02, 0.03, 0.05, 0.08\}$ along $(\alpha,\delta)=(200^\circ,-60^\circ)$ and along the Galactic north pole $(192.9^\circ,+27.1^\circ)$.
+For the same $N$ and footprint, the sample would detect $|\mathbf{d}|=0.08$ in $\ge92\%$ of realisations and $|\mathbf{d}|=0.05$ in $31$--$82\%$, but $|\mathbf{d}|\le0.03$ is detected in at most $19\%$.
+The sample therefore disfavours dipoles of amplitude $\gtrsim0.05$--$0.08$ and cannot test smaller ones.
+These fractions are specific to this sample; they say nothing about the power of larger catalogues.
+
+\begin{table}[t]
+\caption{\label{tab:sens}Fraction of $200$ simulated catalogues (real positions, fitted monopole, injected dipole) with a $3\sigma$ detection.}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Injected $|\mathbf{d}|$ & $0.02$ & $0.03$ & $0.05$ & $0.08$\\
+\midrule
+Along $(200^\circ,-60^\circ)$ & $0.015$ & $0.065$ & $0.31$ & $0.92$\\
+Along Galactic north pole & $0.05$ & $0.185$ & $0.815$ & $1.00$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Robustness to threshold and label definition}
+\label{sec:robust}
+
+We repeat the monopole-aware fit for consensus thresholds $0.50$, $0.60$ and $0.80$ and for two label definitions: the standard vote fractions and the monochrome fractions (Table~\ref{tab:robustness}).
+Exact duplicate positions are removed, and galaxies that would satisfy both the clockwise and the anticlockwise criterion would be excluded (none occur at these thresholds).
+The standard $0.80$ row reproduces the main analysis.
+The dipole $p$-values (analytic $\chi^2_3$) lie between $0.75$ and $0.96$ in all six configurations; in the main analysis the analytic and permutation $p$-values agree ($0.7915$ and $0.7923$).
+Because the samples are nested (the $0.80$ sample is a subset of the $0.50$ sample), the rows are not independent, and a larger $p$-value in a larger sample is not additional evidence for isotropy.
+The fitted monopole stays negative at $4.0$--$4.4\sigma$ in every configuration and shrinks in magnitude as the threshold is lowered, from $-0.047$ at $0.80$ to $-0.030$ at $0.50$ for the standard votes.
+The monochrome fractions give a slightly smaller monopole at threshold $0.80$ ($-0.043$ versus $-0.047$), as expected for columns that differ from the standard ones for only $\approx10\%$ of the objects.
+
+\begin{table}[t]
+\caption{\label{tab:robustness}Monopole-aware dipole fit for different consensus thresholds and label definitions in GZ1 (analytic $\chi^2_3$ $p$-values; duplicate positions removed). The samples are nested and the rows are not independent. ``Monochrome'' denotes the catalogue columns \texttt{pcSm}/\texttt{paSm}, not debiased votes.}
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+Label definition & Threshold & $N$ & Monopole $m$ & $|\mathbf{d}|$ & $p$\\
+\midrule
+Standard & $0.50$ & $75{,}447$ & $-0.0304\pm0.0073$ & $0.0042$ & $0.9576$\\
+Standard & $0.60$ & $60{,}721$ & $-0.0360\pm0.0082$ & $0.0068$ & $0.9326$\\
+Standard & $0.80$ & $36{,}267$ & $-0.0468\pm0.0106$ & $0.0155$ & $0.7915$\\
+Monochrome & $0.50$ & $74{,}805$ & $-0.0291\pm0.0073$ & $0.0043$ & $0.9558$\\
+Monochrome & $0.60$ & $60{,}265$ & $-0.0333\pm0.0082$ & $0.0054$ & $0.9523$\\
+Monochrome & $0.80$ & $35{,}709$ & $-0.0431\pm0.0107$ & $0.0148$ & $0.7533$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We also repeat the fit on subsets of the main sample (Table~\ref{tab:subsets}): galaxies from the Main sample only, from the additional sample only, and galaxies with at least $20$ or $30$ votes.
+The dipole is consistent with zero in every subset ($p=0.44$--$0.85$), and the monopole stays negative in all of them.
+The additional-sample subset ($N=5{,}542$) is too small to constrain the dipole well (marginalised monopole $-0.061\pm0.026$).
+
+\begin{table}[t]
+\caption{\label{tab:subsets}Monopole-aware dipole fit on subsets of the $N=36{,}267$ sample (threshold $0.80$, standard votes; analytic $\chi^2_3$ $p$-values).}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Subset & $N$ & Monopole $m$ & $|\mathbf{d}|$ & $p$\\
+\midrule
+All (main analysis) & $36{,}267$ & $-0.0468\pm0.0106$ & $0.0155$ & $0.7915$\\
+Main sample only & $30{,}725$ & $-0.0438\pm0.0116$ & $0.0150$ & $0.8448$\\
+Additional sample only & $5{,}542$ & $-0.0610\pm0.0261$ & $0.0480$ & $0.4420$\\
+$\ge20$ votes & $35{,}901$ & $-0.0467\pm0.0107$ & $0.0145$ & $0.8119$\\
+$\ge30$ votes & $25{,}660$ & $-0.0525\pm0.0127$ & $0.0357$ & $0.4384$\\
+Main sample, $\ge20$ votes & $30{,}412$ & $-0.0439\pm0.0117$ & $0.0139$ & $0.8481$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Origin of the monopole}
+The catalogue shows an S-wise excess at every threshold we tried.
+Land et al.\ attribute such an excess to human bias \cite{Land2008}, and Hayes et al.\ argue it is a selection effect in which S-wise votes are preferentially taken from non-spiral categories \cite{Hayes2017}.
+Our data cannot distinguish these explanations or show that the monopole is non-physical; they show only that a constant offset of this size is present, is consistent with the published fraction of Z-wise galaxies in the clean GZ1 sample, and is accommodated by the free monopole term without affecting the dipole fit.
+
+\paragraph{False dipoles on partial footprints}
+The $5.1\sigma$ naive detection is produced entirely by a constant offset on a footprint covering roughly a quarter of the sky, pointing $29^\circ$ from the anti-centroid.
+An estimator of a spin dipole that lacks a free monopole term can produce this behaviour on a partial footprint if the labelled sample is imbalanced.
+We therefore recommend that dipole analyses of handedness report the fitted monopole, the footprint and the marginalised uncertainty along the tested axes; \texttt{skydipole} prints all three by default.
+We have not examined whether earlier analyses \cite{Longo2011,Shamir2012,Shamir2016,Shamir2020,Shamir2022} included a monopole or used mirror-image or other controls, and this paper makes no claim about their conclusions.
+
+\paragraph{What the null result means}
+The monopole-aware dipole is consistent with zero, the proposed axes are consistent with zero, and the sample disfavours dipoles above $\approx0.05$--$0.08$ (Section~\ref{sec:sens}).
+Because the $1\sigma$ uncertainty per axis is $0.011$--$0.018$, amplitudes of a few per cent, which are of the order reported in the literature for other datasets, are not testable with this sample.
+The result is therefore consistent with no dipole and also with a small dipole, and it agrees with the conclusions of Refs.~\cite{Land2008,Iye2021,PatelDesmond2024}.
+A Bayesian treatment of the $(m,\mathbf d)$ posterior with a sampler such as those benchmarked for cosmological likelihoods \cite{Caldwell2009,Albert2025} would allow informative priors on the monopole from the GZ1 bias studies to be incorporated and is a natural extension of the code.
+
+\paragraph{Limitations}
+(i) Only one catalogue and about a quarter of the sky are used; all dipole directions are not equally constrained (Section~\ref{sec:axes}).
+(ii) The GZ1 handedness labels carry a known bias, and the model allows only a position-independent offset.
+A position-dependent bias (for example from image orientation or scanning patterns) would not be absorbed by the monopole and was not tested; Ref.~\cite{Land2008} used a mirror-image study for this purpose, and the public table lists the numbers of mirrored votes but not the mirrored vote fractions, so that test cannot be reproduced from it.
+(iii) Only $\ell=0,1$ were fitted; higher multipoles (quadrupole and beyond) are a planned extension.
+(iv) Redshift-dependence of the signal and correlation with Galactic dust were not tested here, because the extracted label file carries neither redshift nor $E(B{-}V)$; the pipeline supports both tests if those columns are added.
+(v) The estimator assumes a binomial variance with independent labels; correlated labels (for example the chiral correlation of neighbouring galaxies) would enlarge the errors.
+(vi) The axes tested were chosen from the literature, not by a blind procedure; the free-axis statistic is the only test with a built-in trials correction.
+(vii) The rows of Table~\ref{tab:robustness} are nested samples and are not independent.
+
+%% ------------------------------------------------------------------
+\section{Conclusions}
+\label{sec:conclusions}
+
+\texttt{skydipole} provides a monopole-aware, footprint-aware and permutation-calibrated dipole search for binary-labelled sky catalogues, with built-in sensitivity estimation, at $O(N)$ cost.
+Applied to $36{,}267$ clean Galaxy Zoo~1 spirals covering roughly a quarter of the sky, it finds no evidence for a galaxy-spin dipole ($p_{\rm perm} = 0.79$) and a significant constant offset toward S-wise labels ($m = -0.047\pm0.011$).
+Omitting the monopole converts this offset into a spurious $5.1\sigma$ dipole pointing away from the footprint.
+Projections on five previously proposed axes are consistent with zero, and the sample disfavours dipoles of amplitude $\gtrsim0.05$--$0.08$ but cannot test those of a few per cent.
+We suggest that spin-dipole analyses report a jointly fitted monopole, footprint-aware uncertainties and injection--recovery sensitivity; the package makes all three routine.
+
+%% ------------------------------------------------------------------
+\appendix
+\section{Binned axisymmetric diagnostic}
+\label{app:nonlin}
+
+For comparison with an axisymmetric parametrisation that has been proposed as an alternative to a pure dipole on frame-dragging grounds, \texttt{option2b\_followup.py} also fits
+\begin{equation}
+    A(\theta) = \frac{C_0\,a\sin\theta}{1 + a^2\cos^2\theta}
+    \label{eq:nonlin}
+\end{equation}
+to $24$ equal-count bins in the angle $\theta$ to a fixed axis, here $(\alpha,\delta) = (200^\circ, -60^\circ)$, with $a\in[0,1]$, using bounded least squares with uncertainties $1/\sqrt{N_k}$; the binned $\chi^2$ is a standard goodness-of-fit statistic for unweighted histograms \cite{Gagunashvili2012}.
+This form is not an established model from the literature and is used only as a diagnostic.
+The null $A=0$ is rejected ($\chi^2 = 72.0$, $24$ d.o.f., $p = 1.1\times10^{-6}$), but only because of the constant offset, for which the bin means span $-0.078$ to $+0.005$ with no systematic trend in $\theta$ (Fig.~\ref{fig:false_dipole_demo}, right).
+A constant-offset model $A = \bar m = -0.0377$ has $\chi^2 = 20.34$ for $23$ d.o.f.\ ($p = 0.62$).
+With $C_0 \ge 0$ the fit collapses to $C_0\approx0$ ($\chi^2 = 72.0$), because the observed asymmetry is negative.
+If $C_0<0$ is allowed, the fit returns $a = 0.039$ and $C_0 = -1.0$ (at the bound; $\chi^2 = 21.53$ for $22$ d.o.f.), so only the product $aC_0\approx-0.04$ is determined and the fit reproduces the constant offset.
+In the $a$--$C_0$ form the two parameters are therefore not separately constrained by these data; the linear monopole--dipole model of Section~\ref{sec:estimator} captures the same information without the degeneracy.
+
+%% ------------------------------------------------------------------
+\section*{CRediT authorship contribution statement}
+\textbf{F.~Akba:} Conceptualization, Methodology, Software, Formal analysis, Writing -- original draft.
+\textbf{E.~Ulu:} Data curation, Software, Validation.
+\textbf{\.{I}.~T.~Medeni:} Writing -- review \& editing, Project administration.
+\textbf{\.{I}.~Askerzade:} Supervision, Resources, Writing -- review \& editing.
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Funding}
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+\section*{Data and code availability}
+The Galaxy Zoo~1 catalogue is VizieR J/MNRAS/410/166 \cite{Lintott2011}, retrieved with all columns and no row limit ($893{,}212$ rows).
+The label file \texttt{real\_galaxy\_labels.csv} (SHA-256 \texttt{49bb62a5\ldots9756c}, full hash in the README), all result files, the figures and the complete pipeline listed in Table~\ref{tab:files}, together with a README giving the run order and the fixed random seeds, are archived at Zenodo (DOI: \href{https://doi.org/10.5281/zenodo.23298960}{10.5281/zenodo.23298960}) and in the CPC Program Library (Mendeley Data) under the MIT licence.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+During the preparation of this work the authors used an AI assistant to check the bibliography and to edit the language of the manuscript. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the published article.
+
+\bibliographystyle{elsarticle-num}
+\bibliography{refs}
+
+\end{document}
