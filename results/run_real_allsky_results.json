@@ -1,0 +1,84 @@
+{
+  "log": {
+    "input": "data/real_galaxy_labels.csv",
+    "sha256": "49bb62a52fbb3240e71780bcff22efaf63698c47a960a7c2c27bcad965b9756c",
+    "n_rows_raw": 36268,
+    "seed": 12345,
+    "utc": "2026-10-21T07:50:59.364811",
+    "python": "3.13.16",
+    "numpy": "2.5.3",
+    "n_dropped_unrecognised_spin": 0,
+    "n_duplicates_removed": 1,
+    "N_used": 36267,
+    "frac_S": 0.48112609259106076,
+    "footprint": {
+      "N": 36267,
+      "ra_range_deg": [
+        0.049875,
+        359.9948333
+      ],
+      "dec_range_deg": [
+        -11.2333889,
+        76.4917222
+      ],
+      "sky_fraction_occupied_approx": 0.2348148148148148,
+      "theta_to_axis_deg_min_max": [
+        56.46395485623904,
+        141.10403346857439
+      ]
+    },
+    "dipole_sigma_best_worst_direction": [
+      0.0104278702965951,
+      0.01889966487589322
+    ]
+  },
+  "fit_dipole_plus_monopole": {
+    "m": -0.04678285980097935,
+    "m_err": 0.010598481522262504,
+    "d": [
+      -0.006882450384164129,
+      0.0017259412045404665,
+      0.013749658417683691
+    ],
+    "amp": 0.01547255967624593,
+    "ra": 165.9220133808054,
+    "dec": 62.703837384869786,
+    "chi2_dipole": 1.0401672938169424,
+    "p_analytic": 0.7915339287047867
+  },
+  "fit_dipole_only": {
+    "amp": 0.04459066576576892,
+    "ra": 18.938112863031506,
+    "dec": -65.17814454980525,
+    "p_analytic": 2.797624897046688e-07
+  },
+  "permutation": {
+    "n": 10000,
+    "n_ge_observed": 7923,
+    "p_perm": 0.7923207679232077,
+    "p_floor": 9.999000099990002e-05,
+    "sigma_equiv": 0.2632981727877512,
+    "null_chi2_mean": 3.004777948751379
+  },
+  "paper_axis_projection": {
+    "d_along_axis": -0.00896901289268484,
+    "sigma": 0.017847259780941382,
+    "z_score": -0.5025428554731193,
+    "note": "axis was chosen post hoc in the original paper; only NEW data test it fairly"
+  },
+  "bootstrap": {
+    "amp_mean": 0.02471052240727125,
+    "amp_16_84": [
+      0.013334741769520207,
+      0.036303599093859835
+    ],
+    "axis_68pct_radius_deg": 63.29313365413888
+  },
+  "split_half": {
+    "chi2_mean_expected_3": 2.4883456373557866,
+    "n_splits": 50,
+    "note": "halves share the same sky pattern; values >>3 indicate internal inconsistency"
+  },
+  "redshift_slices": "SKIPPED (no --z column). Use spectroscopic z, not photo-z.",
+  "dust": "SKIPPED (no --ebv column). Take E(B-V) from SFD98/Planck at each position."
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- SYNTHETIC miniature file in the VizieR VOTable/CSV layout, for testing Galaxy_Data_Extractor.py only. Not real data. -->
+<VOTABLE><RESOURCE><TABLE><DATA><CSV headnone="true" delimiter=";"><![CDATA[
+_RAJ2000;_DEJ2000;pcS;paS;N;S
+deg;deg;;;;
+---------;---------;---;---;---;-
+10.0000;20.0000;0.900;0.050;40;M
+11.0000;21.0000;0.050;0.900;35;M
+12.0000;22.0000;0.500;0.450;30;M
+13.0000;23.0000;0.800;0.100;25;A
+14.0000;24.0000;0.100;0.800;22;A
+15.0000;25.0000;0.790;0.200;20;M
+]]></CSV></DATA></TABLE></RESOURCE></VOTABLE>

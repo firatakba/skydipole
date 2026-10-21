@@ -1,0 +1,92 @@
+{
+  "N": 36267,
+  "paper_pipeline_on_real_data": {
+    "theta_range_rad": [
+      1.066802049301043,
+      2.2882374341886735
+    ],
+    "mean_A_all_bins": -0.03774781481787851,
+    "A_bins_min_max": [
+      -0.07804232804232804,
+      0.004632693580410324
+    ],
+    "chi2_H0_A=0": 72.01787071178202,
+    "p_H0": 1.0773168334656083e-06,
+    "eq4_bounded_C0>=0": {
+      "a": 1.668200264883478e-11,
+      "C0": 1.6654101956146495e-12,
+      "chi2": 72.01787071178204,
+      "dof": 22
+    },
+    "eq4_C0_allowed_negative": {
+      "a": 0.03949396170403036,
+      "C0": -0.9999999999999999,
+      "chi2": 21.534017988341972,
+      "dof": 22
+    },
+    "constant_offset_model": {
+      "m": -0.03774781481787851,
+      "chi2": 20.341112226106343,
+      "dof": 23,
+      "p": 0.6212565620614878
+    }
+  },
+  "limits": {
+    "d_along_paper_axis": -0.00896901289268484,
+    "sigma": 0.017847259780941382,
+    "95pct_interval_along_axis": [
+      -0.04394964206332995,
+      0.026011616277960267
+    ],
+    "95pct_one_sided_upper_limit_positive_direction": 0.020389729446963732,
+    "paper_implied_asymmetry_scale_C0": 0.032,
+    "positive_0.032_excluded_at_sigma": 2.2955351911465183,
+    "monopole": [
+      -0.04678285980097935,
+      0.010598481522262504,
+      -4.414109672476214
+    ]
+  },
+  "sensitivity_SIMULATION": [
+    {
+      "axis": "paper_axis",
+      "amp": 0.02,
+      "frac_detected_3sigma": 0.015
+    },
+    {
+      "axis": "paper_axis",
+      "amp": 0.03,
+      "frac_detected_3sigma": 0.065
+    },
+    {
+      "axis": "paper_axis",
+      "amp": 0.05,
+      "frac_detected_3sigma": 0.31
+    },
+    {
+      "axis": "paper_axis",
+      "amp": 0.08,
+      "frac_detected_3sigma": 0.92
+    },
+    {
+      "axis": "GZ_north_pole_RA192_Dec27",
+      "amp": 0.02,
+      "frac_detected_3sigma": 0.05
+    },
+    {
+      "axis": "GZ_north_pole_RA192_Dec27",
+      "amp": 0.03,
+      "frac_detected_3sigma": 0.185
+    },
+    {
+      "axis": "GZ_north_pole_RA192_Dec27",
+      "amp": 0.05,
+      "frac_detected_3sigma": 0.815
+    },
+    {
+      "axis": "GZ_north_pole_RA192_Dec27",
+      "amp": 0.08,
+      "frac_detected_3sigma": 1.0
+    }
+  ]
+}

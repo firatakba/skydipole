@@ -40,7 +40,7 @@ from chirality_lib import (radec_to_unit, design_matrix, dipole_fit,
                            fast_chi2_dipole, simulate_labels)
 
 p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-p.add_argument("--labels", default="real_galaxy_labels.csv", help="CSV with ra,dec,spin")
+p.add_argument("--labels", default="data/real_galaxy_labels.csv", help="CSV with ra,dec,spin")
 p.add_argument("--sizes", type=int, nargs="+", default=[10_000, 36_267, 100_000, 1_000_000])
 p.add_argument("--nperm", type=int, default=10_000)
 p.add_argument("--nboot", type=int, default=300)

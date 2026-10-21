@@ -1,0 +1,19 @@
+{
+  "title": "skydipole: a monopole-aware dipole estimator for binary-labelled sky catalogues (code, data and results)",
+  "upload_type": "software",
+  "version": "1.0",
+  "license": "MIT",
+  "access_right": "open",
+  "language": "eng",
+  "creators": [
+    {"name": "Akba, Fırat", "affiliation": "TED University, Ankara, Turkey"},
+    {"name": "Ulu, Eren", "affiliation": "TED University, Ankara, Turkey"},
+    {"name": "Medeni, İhsan Tolga", "affiliation": "Ankara Yıldırım Beyazıt University, Ankara, Turkey"},
+    {"name": "Askerbeyli, İman", "affiliation": "Ankara University, Ankara, Turkey"}
+  ],
+  "description": "Python package that fits a monopole and a dipole jointly (OLS, full normal matrix) to a binary-labelled catalogue on a partial sky footprint, calibrates the free-axis test by vectorised label permutation, reports fixed-axis projections and injection-recovery sensitivity. Includes the Galaxy Zoo 1 handedness label file (derived from VizieR J/MNRAS/410/166), all example-application scripts, reference outputs, a test suite and the timing benchmark.",
+  "keywords": ["cosmic isotropy", "galaxy spin", "dipole estimation", "partial sky coverage", "permutation test", "Galaxy Zoo", "Python"],
+  "related_identifiers": [
+    {"identifier": "https://github.com/firatakba/skydipole", "relation": "isSupplementedBy", "scheme": "url"}
+  ]
+}

@@ -1,0 +1,38 @@
+/tmp/claude-0/-home-claude/70412815-186c-5019-b810-f50ab9148bd5/scratchpad/relrun/option2_real_analysis.py:38: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "utc": datetime.datetime.utcnow().isoformat(), "python": platform.python_version(),
+{
+ "input": "data/real_galaxy_labels.csv",
+ "sha256": "49bb62a52fbb3240e71780bcff22efaf63698c47a960a7c2c27bcad965b9756c",
+ "n_rows_raw": 36268,
+ "seed": 12345,
+ "utc": "2026-10-21T07:50:59.364811",
+ "python": "3.13.16",
+ "numpy": "2.5.3",
+ "n_dropped_unrecognised_spin": 0,
+ "n_duplicates_removed": 1,
+ "N_used": 36267,
+ "frac_S": 0.48112609259106076,
+ "footprint": {
+  "N": 36267,
+  "ra_range_deg": [
+   0.049875,
+   359.9948333
+  ],
+  "dec_range_deg": [
+   -11.2333889,
+   76.4917222
+  ],
+  "sky_fraction_occupied_approx": 0.2348148148148148,
+  "theta_to_axis_deg_min_max": [
+   56.46395485623904,
+   141.10403346857439
+  ]
+ }
+}
+
+Monopole m = -0.04678 +/- 0.01060  (non-zero => global labelling bias)
+Dipole |d| = 0.01547  axis (RA,Dec) = (165.9, 62.7)  chi2(3dof) = 1.04
+Permutation p = 7.92e-01 (7923/10000 >= observed); floor 1.0e-04
+Projection on paper axis: -0.00897 +/- 0.01785  (-0.50 sigma, 1 dof)
+
+Wrote run_real_allsky_results.json and run_real_allsky_summary.png

@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the article below."
+title: "skydipole: a monopole-aware dipole estimator for binary-labelled sky catalogues"
+type: software
+version: "1.0"
+date-released: "2026-10-21"
+license: MIT
+repository-code: "https://github.com/firatakba/skydipole"
+authors:
+  - family-names: "Akba"
+    given-names: "Fırat"
+    email: "firat.akba@tedu.edu.tr"
+    affiliation: "Department of Computer Engineering, TED University, Ankara, Turkey"
+  - family-names: "Ulu"
+    given-names: "Eren"
+    email: "eren.ulu@tedu.edu.tr"
+    affiliation: "Department of Computer Engineering, TED University, Ankara, Turkey"
+  - family-names: "Medeni"
+    given-names: "İhsan Tolga"
+    email: "ihsantolgamedeni@aybu.edu.tr"
+    affiliation: "Department of Management Information Systems, Ankara Yıldırım Beyazıt University, Ankara, Turkey"
+  - family-names: "Askerbeyli"
+    given-names: "İman"
+    email: "imasker@eng.ankara.edu.tr"
+    affiliation: "Department of Computer Engineering, Ankara University, Ankara, Turkey"
+keywords:
+  - cosmic isotropy
+  - galaxy spin
+  - dipole estimation
+  - partial sky coverage
+  - permutation test
+  - Galaxy Zoo
+  - Python
